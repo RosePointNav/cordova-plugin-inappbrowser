@@ -1100,8 +1100,8 @@ BOOL isExiting = FALSE;
     if (IsAtLeastiOSVersion(@"7.0") && !viewRenderedAtLeastOnce) {
         viewRenderedAtLeastOnce = TRUE;
         CGRect viewBounds = [self.webView bounds];
-        viewBounds.origin.y = STATUSBAR_HEIGHT;
-        viewBounds.size.height = viewBounds.size.height - STATUSBAR_HEIGHT;
+        viewBounds.origin.y = 0.0;//STATUSBAR_HEIGHT;
+        viewBounds.size.height = viewBounds.size.height;// - STATUSBAR_HEIGHT;
         self.webView.frame = viewBounds;
         [[UIApplication sharedApplication] setStatusBarStyle:[self preferredStatusBarStyle]];
     }
@@ -1116,7 +1116,7 @@ BOOL isExiting = FALSE;
 // change that value.
 //
 - (float) getStatusBarOffset {
-    if ([[browserOptions.presentationstyle lowercaseString] isEqualToString:@"pagesheet"]) {
+    if ([[_browserOptions.presentationstyle lowercaseString] isEqualToString:@"pagesheet"]) {
       return 0.0;
     }
     CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
