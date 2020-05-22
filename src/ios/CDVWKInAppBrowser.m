@@ -223,7 +223,8 @@ static CDVWKInAppBrowser* instance = nil;
         }
     }
     self.inAppBrowserViewController.modalPresentationStyle = presentationStyle;
-    self.inAppBrowserViewController.modalInPresentation = YES;
+    if (@available(iOS 13.0, *))
+        self.inAppBrowserViewController.modalInPresentation = YES;
     
     // Set Transition Style
     UIModalTransitionStyle transitionStyle = UIModalTransitionStyleCoverVertical; // default
@@ -828,10 +829,10 @@ BOOL isExiting = FALSE;
     self.toolbar.multipleTouchEnabled = NO;
     self.toolbar.opaque = NO;
     self.toolbar.userInteractionEnabled = YES;
-    if (_browserOptions.toolbarcolor != nil) { // Set toolbar color if user sets it in options
-      self.toolbar.barTintColor = [self colorFromHexString:_browserOptions.toolbarcolor];
-    }
-    self.toolbar.translucent = NO;
+//    if (_browserOptions.toolbarcolor != nil) { // Set toolbar color if user sets it in options
+//      self.toolbar.barTintColor = [self colorFromHexString:_browserOptions.toolbarcolor];
+//    }
+    self.toolbar.translucent = YES;
     
     CGFloat labelInset = 5.0;
     float locationBarY = toolbarIsAtBottom ? self.view.bounds.size.height - FOOTER_HEIGHT : self.view.bounds.size.height - LOCATIONBAR_HEIGHT;
@@ -894,10 +895,16 @@ BOOL isExiting = FALSE;
         [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton, self.backButton, fixedSpaceButton, self.forwardButton]];
     }
     
-    self.view.backgroundColor = [UIColor whiteColor];
+    if (@available(iOS 13.0, *))
+        self.view.backgroundColor = [UIColor systemBackgroundColor];
+    else
+        self.view.backgroundColor = [UIColor whiteColor];
+    
     [self.view addSubview:self.toolbar];
     [self.view addSubview:self.addressLabel];
     [self.view addSubview:self.spinner];
+    
+    [self.view bringSubviewToFront:self.toolbar];
 }
 
 - (id)settingForKey:(NSString*)key
@@ -1100,10 +1107,10 @@ BOOL isExiting = FALSE;
     if (IsAtLeastiOSVersion(@"7.0") && !viewRenderedAtLeastOnce) {
         viewRenderedAtLeastOnce = TRUE;
         CGRect viewBounds = [self.webView bounds];
-        viewBounds.origin.y = 0.0;//STATUSBAR_HEIGHT;
+        viewBounds.origin.y = 0;//STATUSBAR_HEIGHT;
         viewBounds.size.height = viewBounds.size.height;// - STATUSBAR_HEIGHT;
         self.webView.frame = viewBounds;
-        [[UIApplication sharedApplication] setStatusBarStyle:[self preferredStatusBarStyle]];
+//        [[UIApplication sharedApplication] setStatusBarStyle:[self preferredStatusBarStyle]];
     }
     [self rePositionViews];
     
@@ -1115,19 +1122,43 @@ BOOL isExiting = FALSE;
 // The height of it could be hardcoded as 20 pixels, but that would assume that the upcoming releases of iOS won't
 // change that value.
 //
-- (float) getStatusBarOffset {
-    if ([[_browserOptions.presentationstyle lowercaseString] isEqualToString:@"pagesheet"]) {
-      return 0.0;
+- (float) getStatusBarOffset
+{
+    if (@available(iOS 13.0, *))
+    {
+        if ([[_browserOptions.presentationstyle lowercaseString] isEqualToString:@"pagesheet"]) {
+//            UIEdgeInsets insets = [self.view safeAreaInsets];
+            CGRect viewBounds = [self.view bounds];
+            if (viewBounds.size.width < 500)
+                return 15.0; // iPhone;
+            else
+                return 0; // iPad
+        }
     }
+        
     CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
     float statusBarOffset = IsAtLeastiOSVersion(@"7.0") ? MIN(statusBarFrame.size.width, statusBarFrame.size.height) : 0.0;
     return statusBarOffset;
 }
 
-- (void) rePositionViews {
-    if ([_browserOptions.toolbarposition isEqualToString:kInAppBrowserToolbarBarPositionTop]) {
-        [self.webView setFrame:CGRectMake(self.webView.frame.origin.x, TOOLBAR_HEIGHT, self.webView.frame.size.width, self.webView.frame.size.height)];
-        [self.toolbar setFrame:CGRectMake(self.toolbar.frame.origin.x, [self getStatusBarOffset], self.toolbar.frame.size.width, self.toolbar.frame.size.height)];
+- (void) rePositionViews
+{
+    CGRect viewBounds = [self.view bounds];
+    float y = viewBounds.origin.y + [self getStatusBarOffset];
+    
+    if ([_browserOptions.toolbarposition isEqualToString:kInAppBrowserToolbarBarPositionTop])
+    {
+        [self.toolbar setFrame:CGRectMake(self.toolbar.frame.origin.x, y, self.toolbar.frame.size.width, self.toolbar.frame.size.height)];
+        y += self.toolbar.frame.size.height;
+        viewBounds.origin.y = y;
+        viewBounds.size.height -= y;
+        self.webView.frame = viewBounds;
+        [self.webView setFrame:CGRectMake(self.webView.frame.origin.x, y, self.webView.frame.size.width, self.webView.frame.size.height)];
+        
+//        y +=self.webView.frame.size.height;
+//        [self.addressLabel setFrame: CGRectMake(self.webView.frame.origin.x, y, self.webView.frame.size.width, 10)];
+//        y += 10;
+//        [self.spinner setFrame: CGRectMake(self.webView.frame.origin.x, y, self.webView.frame.size.width, 10)];
     }
 }
 
